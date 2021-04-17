@@ -9,8 +9,9 @@ def load_orders(orders, dynamodb=None):
 
     table = dynamodb.Table('Orders')
     for order in orders:
-        order_id = order['order_id']
-        print('Adding order: ', order_id)
+        seller_id = order['seller_id']
+        order_time_rand = order['order_time_rand']
+        print('Adding order: ', seller_id, order_time_rand)
         table.put_item(Item=order)
 
 

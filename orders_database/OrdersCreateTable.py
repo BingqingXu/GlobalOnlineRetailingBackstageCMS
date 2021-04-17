@@ -9,7 +9,13 @@ def create_order_table(dynamodb=None):
         TableName='Orders',
         AttributeDefinitions=[
             {
-                'AttributeName': 'order_id',
+                'AttributeName': 'seller_id',
+                'AttributeType': 'S'
+            },
+            {
+                # timestamp with random number
+                # an ISO 8601 string, e.g., 2015-12-21T17:42:34Z, plus a 5 digit random number
+                'AttributeName': 'order_time_rand',
                 'AttributeType': 'S'
             },
             {
@@ -17,20 +23,16 @@ def create_order_table(dynamodb=None):
                 'AttributeType': 'S'
             },
             {
-                'AttributeName': 'order_time',
-                'AttributeType': 'S'  # timestamp, an ISO 8601 string, e.g., 2015-12-21T17:42:34Z
-            },
-            {
                 'AttributeName': 'product_id',
                 'AttributeType': 'S'
             },
+            {
+                # Suppose price and tax are converted to local currency before entering datbase
+                'AttributeName': 'total_price',
+                'AttributeType': 'N'
+            },
             # {
             #     'AttributeName': 'product_quantity',
-            #     'AttributeType': 'N'
-            # },
-            # {
-            #     # Suppose price and tax are converted to local currency before entering datbase
-            #     'AttributeName': 'total_price',
             #     'AttributeType': 'N'
             # },
             # {
@@ -44,49 +46,68 @@ def create_order_table(dynamodb=None):
         ],
         KeySchema=[
             {
-                'AttributeName': 'order_id',
+                'AttributeName': 'seller_id',
                 'KeyType': 'HASH'  # Partition key
+            },
+            {
+                'AttributeName': 'order_time_rand',
+                'KeyType': 'RANGE'  # Sorted key
             }
         ],
         BillingMode='PAY_PER_REQUEST',
-        GlobalSecondaryIndexes=[ 
-          {
-             'IndexName': 'CustomerID_Index',
-             'KeySchema': [
-                {
-                   'AttributeName': 'customer_id',
-                   'KeyType': 'HASH'
-                }
-             ],
-             'Projection': { 
-                'ProjectionType': 'KEYS_ONLY'
-             },
-             'ProvisionedThroughput': { 
-                'ReadCapacityUnits': 3,
-                'WriteCapacityUnits': 3
-             }
-          },
-          {
-             'IndexName': 'ProductID_OrderTime_Index',
-             'KeySchema': [
-                {
-                   'AttributeName': 'product_id',
-                   'KeyType': 'HASH'
+        LocalSecondaryIndexes=[
+            {
+                'IndexName': 'CustomerID_Index',
+                'KeySchema': [
+                    {
+                       'AttributeName': 'seller_id',
+                       'KeyType': 'HASH'
+                    },
+                    {
+                       'AttributeName': 'customer_id',
+                       'KeyType': 'RANGE'
+                    }
+                ],
+                'Projection': {
+                    'ProjectionType': 'KEYS_ONLY'
                 },
-                {
-                   'AttributeName': 'order_time',
-                   'KeyType': 'RANGE'
-                }
-             ],
-             'Projection': { 
-                'ProjectionType': 'INCLUDE',
-                'NonKeyAttributes': ['country', 'product_quantity']
-             },
-             'ProvisionedThroughput': { 
-                'ReadCapacityUnits': 3,
-                'WriteCapacityUnits': 3
-             }
-          }
+                # 'ProvisionedThroughput': {
+                #     'ReadCapacityUnits': 3,
+                #     'WriteCapacityUnits': 3
+                # }
+            },
+            {
+                'IndexName': 'ProductID_Index',
+                'KeySchema': [
+                    {
+                       'AttributeName': 'seller_id',
+                       'KeyType': 'HASH'
+                    },
+                    {
+                       'AttributeName': 'product_id',
+                       'KeyType': 'RANGE'
+                    }
+                ],
+                'Projection': {
+                    'ProjectionType': 'KEYS_ONLY'
+                },
+            },
+            {
+                'IndexName': 'Total_Price_Index',
+                'KeySchema': [
+                    {
+                       'AttributeName': 'seller_id',
+                       'KeyType': 'HASH'
+                    },
+                    {
+                       'AttributeName': 'total_price',
+                       'KeyType': 'RANGE'
+                    }
+                ],
+                'Projection': {
+                    'ProjectionType': 'KEYS_ONLY'
+                },
+            }
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 5,
